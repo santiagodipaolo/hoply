@@ -61,6 +61,7 @@ const RoutesModule = (() => {
           <span class="route-days">📅 ${route.days} ${I18n.t('days')}</span>
           <span class="route-price">💰 ${I18n.t('from_price')} ${I18n.formatPrice(route.totalEstimate)}</span>
           <button class="btn-route-show" data-route-id="${route.id}">${I18n.t('show_on_map')}</button>
+          <button class="btn-route-share" data-route-id="${route.id}" title="${I18n.t('share_copy_link')}">🔗</button>
         </div>
       </div>
     `).join('');
@@ -72,6 +73,25 @@ const RoutesModule = (() => {
         showOnMap(routeId);
         closeModal();
       });
+    });
+
+    container.querySelectorAll('.btn-route-share').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        shareRoute(btn.dataset.routeId, btn);
+      });
+    });
+  }
+
+  function shareRoute(routeId, btnEl) {
+    const data = { t: 'r', id: routeId };
+    const encoded = btoa(JSON.stringify(data));
+    const url = new URL(window.location.href);
+    url.hash = `share=${encoded}`;
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      const original = btnEl.textContent;
+      btnEl.textContent = '✓';
+      setTimeout(() => { btnEl.textContent = original; }, 2000);
     });
   }
 

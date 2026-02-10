@@ -3,6 +3,7 @@ const MapModule = (() => {
   let map = null;
   let markers = [];
   let markerMap = {}; // id -> marker
+  let badgeMarkers = {}; // id -> badge marker
 
   function init() {
     map = L.map('map', {
@@ -130,9 +131,53 @@ const MapModule = (() => {
     map.flyTo([-38.5, -65.0], 5, { duration: 1 });
   }
 
+  function setTravelerBadge(destId, count) {
+    const marker = markerMap[destId];
+    if (!marker) return;
+
+    // Remove existing badge
+    if (badgeMarkers[destId]) {
+      map.removeLayer(badgeMarkers[destId]);
+      delete badgeMarkers[destId];
+    }
+
+    if (count === 0) return;
+
+    let badgeClass = 'traveler-badge';
+    if (count >= 5) badgeClass += ' badge-hot';
+    else if (count >= 2) badgeClass += ' badge-warm';
+
+    const latlng = marker.getLatLng();
+    const badge = L.marker([latlng.lat, latlng.lng], {
+      icon: L.divIcon({
+        className: 'traveler-badge-container',
+        html: `<div class="${badgeClass}">${count}</div>`,
+        iconSize: [22, 22],
+        iconAnchor: [-4, 36]
+      }),
+      interactive: false
+    }).addTo(map);
+
+    badgeMarkers[destId] = badge;
+
+    // Update tooltip to include traveler count
+    const dest = markerMap[destId];
+    if (dest) {
+      const currentTooltip = marker.getTooltip();
+      const baseName = currentTooltip ? currentTooltip.getContent().split('\n')[0] : destId;
+      const text = `${baseName}\n👥 ${count} ${count === 1 ? 'viajero' : 'viajeros'}`;
+      marker.unbindTooltip();
+      marker.bindTooltip(text, {
+        direction: 'top',
+        offset: [0, -30],
+        className: 'marker-label'
+      });
+    }
+  }
+
   function getMap() {
     return map;
   }
 
-  return { init, addMarker, setActiveMarker, highlightMarkers, dimMarkersByBudget, resetMarkers, updateTooltip, flyTo, resetView, getMap };
+  return { init, addMarker, setActiveMarker, highlightMarkers, dimMarkersByBudget, resetMarkers, updateTooltip, flyTo, resetView, getMap, setTravelerBadge };
 })();

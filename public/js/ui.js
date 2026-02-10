@@ -60,6 +60,9 @@ const UI = (() => {
     // Load reviews
     ReviewsModule.loadForDestination(destination.id);
 
+    // Load travelers wall
+    TravelersModule.loadForDestination(destination.id);
+
     // Mobile
     if (isMobile()) {
       document.getElementById('sidebar').classList.add('open');
@@ -99,23 +102,65 @@ const UI = (() => {
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
 
-      grid.innerHTML = data.calendar.map(m => {
+      grid.innerHTML = data.calendar.map((m, i) => {
         const pct = maxPrice > minPrice ? (m.price - minPrice) / (maxPrice - minPrice) : 0.5;
         let cls = '';
         if (m.isCheap) cls = 'cal-month-cheap';
         else if (m.isExpensive) cls = 'cal-month-expensive';
 
-        return `<div class="cal-month ${cls}" title="${I18n.formatPrice(m.price)}">
+        return `<div class="cal-month ${cls}" data-month-index="${i}" title="${I18n.formatPrice(m.price)}">
           <span class="cal-month-name">${m.month}</span>
           <div class="cal-bar" style="height: ${20 + pct * 30}px"></div>
           <span class="cal-month-price">${I18n.formatPrice(m.price)}</span>
         </div>`;
       }).join('');
 
+      // Make months clickable
+      grid.querySelectorAll('.cal-month').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.dataset.monthIndex);
+          selectCalendarMonth(idx);
+          // Highlight selected month
+          grid.querySelectorAll('.cal-month').forEach(m => m.classList.remove('cal-month-selected'));
+          el.classList.add('cal-month-selected');
+        });
+      });
+
       document.getElementById('price-calendar').style.display = 'block';
     } catch (e) {
       document.getElementById('price-calendar').style.display = 'none';
     }
+  }
+
+  function selectCalendarMonth(monthIndex) {
+    const now = new Date();
+    let year = now.getFullYear();
+    // If the month has already passed this year, use next year
+    if (monthIndex < now.getMonth()) {
+      year++;
+    }
+
+    // Find first Friday of the month
+    const firstDay = new Date(year, monthIndex, 1);
+    const dayOfWeek = firstDay.getDay();
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+    const firstFriday = new Date(year, monthIndex, 1 + daysUntilFriday);
+
+    // Return date = departure + 5 days
+    const returnDay = new Date(firstFriday);
+    returnDay.setDate(returnDay.getDate() + 5);
+
+    document.getElementById('departure-date').value = formatDate(firstFriday);
+    document.getElementById('return-date').value = formatDate(returnDay);
+
+    // Scroll to search form
+    const dateSelector = document.getElementById('date-selector');
+    dateSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Highlight search button briefly
+    const btn = document.getElementById('search-package');
+    btn.classList.add('btn-search-highlight');
+    setTimeout(() => btn.classList.remove('btn-search-highlight'), 1600);
   }
 
   function showLoading() {

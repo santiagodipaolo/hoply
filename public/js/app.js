@@ -12,6 +12,8 @@
   RoutesModule.init();
   ReviewsModule.init();
   GiftModule.init();
+  TravelersModule.init();
+  GroupTripModule.init();
 
   // Language toggle
   document.getElementById('lang-toggle').addEventListener('click', () => {
@@ -37,12 +39,18 @@
   });
 
   // Load routes
-  RoutesModule.load();
+  await RoutesModule.load();
 
   // Load weather for all destinations (shows on markers)
   WeatherModule.loadAll().then(() => {
     WeatherModule.updateMarkerTooltips();
   });
+
+  // Load traveler counts for map badges
+  TravelerCountModule.loadCounts();
+
+  // Handle shared URLs
+  handleSharedURL(destinations);
 
   // Search button handler
   document.getElementById('search-package').addEventListener('click', () => {
@@ -94,4 +102,42 @@
   });
 
   console.log(`Hoply v2 loaded. ${destinations.length} destinations ready.`);
+
+  function handleSharedURL(destinations) {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#share=')) return;
+
+    try {
+      const encoded = hash.replace('#share=', '');
+      const data = JSON.parse(atob(encoded));
+
+      if (data.t === 'r' && data.id) {
+        // Show circuit on map
+        setTimeout(() => {
+          RoutesModule.showOnMap(data.id);
+        }, 500);
+      } else if (data.t === 'p' && data.d) {
+        // Open destination sidebar, fill dates, trigger search
+        const dest = destinations.find(d => d.iata === data.d);
+        if (!dest) return;
+
+        // Set origin
+        if (data.o) {
+          document.getElementById('origin-city').value = data.o;
+        }
+
+        UI.openSidebar(dest);
+
+        setTimeout(() => {
+          if (data.dd) document.getElementById('departure-date').value = data.dd;
+          if (data.rd) document.getElementById('return-date').value = data.rd;
+          if (data.a) document.getElementById('adults-count').value = data.a;
+
+          PackagesModule.search(dest);
+        }, 300);
+      }
+    } catch (e) {
+      console.error('Error parsing shared URL:', e);
+    }
+  }
 })();

@@ -4,11 +4,13 @@ let amadeus = null;
 
 function getClient() {
   if (!amadeus) {
+    const hostname = process.env.AMADEUS_ENV || 'test';
     amadeus = new Amadeus({
       clientId: process.env.AMADEUS_CLIENT_ID,
       clientSecret: process.env.AMADEUS_CLIENT_SECRET,
-      hostname: 'test' // Use 'production' for live data
+      hostname
     });
+    console.log(`✈️ Amadeus client initialized in ${hostname.toUpperCase()} mode`);
   }
   return amadeus;
 }

@@ -21,6 +21,7 @@
       <button id="btn-routes" class="header-btn" data-i18n="circuits">🗺️ Circuitos</button>
       <button id="btn-compare" class="header-btn" data-i18n="compare">⚖️ Comparar</button>
       <button id="btn-surprise" class="header-btn btn-surprise" data-i18n="surprise">🎲 Sorprendeme</button>
+      <button id="btn-group-trip" class="header-btn btn-group-trip" data-i18n="group_trip_btn">👥 Trip grupal</button>
       <button id="lang-toggle" class="header-btn btn-lang">🌐 EN</button>
     </div>
   </header>
@@ -105,6 +106,7 @@
           <h3 data-i18n="price_calendar">📊 Calendario de precios</h3>
           <div id="calendar-grid" class="calendar-grid"></div>
           <p class="calendar-legend"><span class="cal-cheap"></span> <span data-i18n="cheap">Barato</span> <span class="cal-expensive"></span> <span data-i18n="expensive">Caro</span></p>
+          <p class="calendar-hint" data-i18n="click_month">Click en un mes para elegir fechas</p>
         </div>
 
         <!-- Date Selector -->
@@ -163,7 +165,12 @@
                 <span id="pkg-total-price"></span>
               </div>
             </div>
-            <button id="share-whatsapp" class="btn-whatsapp" data-i18n="share_whatsapp">📱 Compartir por WhatsApp</button>
+            <div class="share-buttons">
+              <button id="share-copy-link" class="btn-share btn-share-link" data-i18n="share_copy_link">🔗 Copiar enlace</button>
+              <button id="share-whatsapp" class="btn-share btn-share-wa" data-i18n="share_whatsapp">📱 WhatsApp</button>
+              <button id="share-email" class="btn-share btn-share-email" data-i18n="share_email">📧 Email</button>
+              <button id="share-twitter" class="btn-share btn-share-twitter" data-i18n="share_twitter">𝕏 Twitter</button>
+            </div>
           </div>
         </div>
 
@@ -178,6 +185,27 @@
             </div>
             <textarea id="review-comment" data-i18n-placeholder="your_experience" placeholder="Conta tu experiencia..." maxlength="200" rows="2"></textarea>
             <button id="submit-review" class="btn-review" data-i18n="submit_review">Enviar opinion</button>
+          </div>
+        </div>
+
+        <!-- Travelers Wall Section -->
+        <div class="travelers-section">
+          <h3 data-i18n="travelers_title">👥 Muro de viajeros</h3>
+          <div id="travelers-list" class="travelers-list"></div>
+          <div class="traveler-form">
+            <input type="text" id="traveler-name" data-i18n-placeholder="your_name" placeholder="Tu nombre" maxlength="30">
+            <div class="traveler-dates-row">
+              <div class="input-group">
+                <label for="traveler-date-from" data-i18n="outbound">Ida</label>
+                <input type="date" id="traveler-date-from">
+              </div>
+              <div class="input-group">
+                <label for="traveler-date-to" data-i18n="return_date">Vuelta</label>
+                <input type="date" id="traveler-date-to">
+              </div>
+            </div>
+            <textarea id="traveler-message" data-i18n-placeholder="trip_message_placeholder" placeholder="Algun mensaje para otros viajeros..." maxlength="140" rows="2"></textarea>
+            <button id="submit-trip" class="btn-review" data-i18n="submit_trip">Yo tambien voy!</button>
           </div>
         </div>
 
@@ -250,6 +278,67 @@
     </div>
   </div>
 
+  <!-- Group Trip Modal -->
+  <div id="group-modal" class="modal" style="display:none;">
+    <div class="modal-content modal-wide">
+      <button class="modal-close" id="group-close">&times;</button>
+      <h2 data-i18n="group_trip_title">👥 Trip grupal</h2>
+      <p class="modal-subtitle" data-i18n="group_trip_subtitle">Planea un viaje con amigos y encuentren el destino ideal</p>
+
+      <!-- Step 1: Create or Join -->
+      <div id="group-step-create-join" class="group-step">
+        <div class="group-create-join">
+          <div class="group-option">
+            <h3 data-i18n="group_create_new">Crear sala nueva</h3>
+            <input type="text" id="group-room-name" data-i18n-placeholder="group_room_name_placeholder" placeholder="Nombre del viaje" maxlength="40">
+            <button id="group-create-btn" class="btn-search" data-i18n="group_create">Crear sala</button>
+          </div>
+          <div class="group-divider"><span data-i18n="group_or">o</span></div>
+          <div class="group-option">
+            <h3 data-i18n="group_join_existing">Unirse a una sala</h3>
+            <input type="text" id="group-room-code" data-i18n-placeholder="group_code_placeholder" placeholder="Codigo de sala (6 letras)" maxlength="6" style="text-transform: uppercase;">
+            <button id="group-join-btn" class="btn-search" data-i18n="group_join">Unirse</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Vote -->
+      <div id="group-step-vote" class="group-step" style="display:none;">
+        <div class="group-room-info">
+          <span id="group-vote-room-name" class="group-room-label"></span>
+          <div class="group-room-code-display" data-i18n="group_room_code">Codigo:</div>
+          <strong id="group-vote-code" class="group-code-big"></strong>
+          <div class="group-share-row">
+            <span id="group-share-url" class="group-share-url"></span>
+            <button id="group-copy-link" class="btn-share btn-share-link">🔗</button>
+          </div>
+        </div>
+        <div class="group-vote-form">
+          <input type="text" id="group-voter-name" data-i18n-placeholder="your_name" placeholder="Tu nombre" maxlength="30">
+          <label data-i18n="group_pick_dests">Elegi hasta 3 destinos:</label>
+          <div id="group-dest-chips" class="compare-select"></div>
+          <div class="group-dates-row">
+            <div class="input-group">
+              <label for="group-date-from" data-i18n="group_your_dates_from">Tu fecha ida</label>
+              <input type="date" id="group-date-from">
+            </div>
+            <div class="input-group">
+              <label for="group-date-to" data-i18n="group_your_dates_to">Tu fecha vuelta</label>
+              <input type="date" id="group-date-to">
+            </div>
+          </div>
+          <button id="group-vote-btn" class="btn-search" data-i18n="group_submit_vote">Votar</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Results -->
+      <div id="group-step-results" class="group-step" style="display:none;">
+        <div id="group-results-content"></div>
+        <button id="group-vote-again-btn" class="btn-review" style="margin-top: 16px;" data-i18n="group_vote_again">Cambiar mi voto</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Mobile bottom bar -->
   <div id="mobile-bar" class="mobile-bar" style="display:none;">
     <button id="mobile-bar-btn" class="mobile-bar-btn">
@@ -269,6 +358,9 @@
   <script src="/js/routes.js"></script>
   <script src="/js/reviews.js"></script>
   <script src="/js/gift.js"></script>
+  <script src="/js/travelers.js"></script>
+  <script src="/js/traveler-count.js"></script>
+  <script src="/js/group-trip.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

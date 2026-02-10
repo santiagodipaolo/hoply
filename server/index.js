@@ -268,6 +268,12 @@ app.get('/api/package/:destinationIata', async (req, res) => {
 // Reviews (save/get - stored in memory for MVP)
 const reviews = {};
 
+// Traveler wall (stored in memory for MVP)
+const travelerWall = {};  // { [destId]: [ { id, name, message, dateFrom, dateTo, createdAt } ] }
+
+// Group trip rooms (stored in memory for MVP)
+const groupRooms = {};    // { [code]: { code, name, createdAt, members: [ { id, name, destinations, dateFrom, dateTo } ] } }
+
 app.get('/api/reviews/:destId', (req, res) => {
   res.json(reviews[req.params.destId] || []);
 });
@@ -284,6 +290,119 @@ app.post('/api/reviews/:destId', (req, res) => {
   res.json(review);
 });
 
+// --- Travelers Wall (Feature 10) ---
+app.get('/api/travelers/:destId', (req, res) => {
+  const trips = travelerWall[req.params.destId] || [];
+  res.json([...trips].reverse());
+});
+
+app.post('/api/travelers/:destId', (req, res) => {
+  const { destId } = req.params;
+  const { name, message, dateFrom, dateTo } = req.body;
+  if (!name || !dateFrom || !dateTo) {
+    return res.status(400).json({ error: 'name, dateFrom y dateTo son requeridos' });
+  }
+  if (!travelerWall[destId]) travelerWall[destId] = [];
+  const trip = {
+    id: Date.now().toString(),
+    name: name.slice(0, 30),
+    message: (message || '').slice(0, 140),
+    dateFrom,
+    dateTo,
+    createdAt: new Date().toISOString()
+  };
+  travelerWall[destId].push(trip);
+  res.json(trip);
+});
+
+// --- Traveler Counts (Feature 11) ---
+app.get('/api/traveler-counts', (req, res) => {
+  const counts = {};
+  for (const destId in travelerWall) {
+    counts[destId] = travelerWall[destId].length;
+  }
+  res.json(counts);
+});
+
+// --- Group Trip (Feature 12) ---
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+app.post('/api/group-trip', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name es requerido' });
+  let code = generateRoomCode();
+  while (groupRooms[code]) code = generateRoomCode();
+  const room = { code, name: name.slice(0, 40), createdAt: new Date().toISOString(), members: [] };
+  groupRooms[code] = room;
+  res.json(room);
+});
+
+app.get('/api/group-trip/:code', (req, res) => {
+  const room = groupRooms[req.params.code.toUpperCase()];
+  if (!room) return res.status(404).json({ error: 'Sala no encontrada' });
+  res.json(room);
+});
+
+app.post('/api/group-trip/:code/join', (req, res) => {
+  const room = groupRooms[req.params.code.toUpperCase()];
+  if (!room) return res.status(404).json({ error: 'Sala no encontrada' });
+  const { name, destinations: dests, dateFrom, dateTo } = req.body;
+  if (!name || !dests || !Array.isArray(dests) || dests.length === 0 || !dateFrom || !dateTo) {
+    return res.status(400).json({ error: 'name, destinations, dateFrom y dateTo son requeridos' });
+  }
+  // Remove previous vote from same name
+  room.members = room.members.filter(m => m.name !== name);
+  room.members.push({
+    id: Date.now().toString(),
+    name: name.slice(0, 30),
+    destinations: dests.slice(0, 3),
+    dateFrom,
+    dateTo
+  });
+  res.json(room);
+});
+
+app.get('/api/group-trip/:code/results', (req, res) => {
+  const room = groupRooms[req.params.code.toUpperCase()];
+  if (!room) return res.status(404).json({ error: 'Sala no encontrada' });
+
+  // Tally votes per destination
+  const voteCounts = {};
+  room.members.forEach(m => {
+    m.destinations.forEach(d => {
+      voteCounts[d] = (voteCounts[d] || 0) + 1;
+    });
+  });
+
+  const ranking = Object.entries(voteCounts)
+    .map(([destId, votes]) => ({ destId, votes }))
+    .sort((a, b) => b.votes - a.votes);
+
+  // Calculate date overlap
+  let overlapFrom = null;
+  let overlapTo = null;
+  if (room.members.length >= 2) {
+    overlapFrom = room.members.reduce((max, m) => m.dateFrom > max ? m.dateFrom : max, room.members[0].dateFrom);
+    overlapTo = room.members.reduce((min, m) => m.dateTo < min ? m.dateTo : min, room.members[0].dateTo);
+    if (overlapFrom > overlapTo) {
+      overlapFrom = null;
+      overlapTo = null;
+    }
+  }
+
+  res.json({
+    room: { code: room.code, name: room.name },
+    memberCount: room.members.length,
+    ranking,
+    dateOverlap: overlapFrom ? { from: overlapFrom, to: overlapTo } : null
+  });
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
@@ -294,6 +413,7 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🥕 Hoply server running at http://localhost:${PORT}`);
     console.log(`📍 ${destinations.filter(d => !d.isOrigin).length} destinos | ${routes.length} circuitos`);
+    console.log(`✈️ Amadeus mode: ${(process.env.AMADEUS_ENV || 'test').toUpperCase()}`);
   });
 }
 

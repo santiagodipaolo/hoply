@@ -93,9 +93,57 @@ const PackagesModule = (() => {
       document.getElementById('pkg-total-price').textContent = I18n.formatPrice(total);
       document.getElementById('package-summary').style.display = 'block';
 
-      // Setup WhatsApp share
+      // Setup share buttons
       document.getElementById('share-whatsapp').onclick = () => shareWhatsApp(total, flightPrice, hotelPrice, hotelDesc, nights);
+      document.getElementById('share-copy-link').onclick = () => copyShareLink();
+      document.getElementById('share-email').onclick = () => shareEmail(total, flightPrice, hotelPrice, hotelDesc, nights);
+      document.getElementById('share-twitter').onclick = () => shareTwitter(total);
     }
+  }
+
+  function generateShareableURL() {
+    const dest = UI.getCurrentDestination();
+    if (!dest) return window.location.href;
+    const data = {
+      t: 'p',
+      d: dest.iata,
+      o: document.getElementById('origin-city').value || 'EZE',
+      dd: document.getElementById('departure-date').value,
+      rd: document.getElementById('return-date').value,
+      a: parseInt(document.getElementById('adults-count').value) || 2
+    };
+    const encoded = btoa(JSON.stringify(data));
+    const url = new URL(window.location.href);
+    url.hash = `share=${encoded}`;
+    return url.toString();
+  }
+
+  function copyShareLink() {
+    const url = generateShareableURL();
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('share-copy-link');
+      const original = btn.textContent;
+      btn.textContent = I18n.t('link_copied');
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    });
+  }
+
+  function shareEmail(total, flightPrice, hotelPrice, hotelDesc, nights) {
+    const dep = document.getElementById('departure-date').value;
+    const ret = document.getElementById('return-date').value;
+    const adults = document.getElementById('adults-count').value;
+    const url = generateShareableURL();
+
+    const subject = `Hoply - ${lastDestName}`;
+    const body = `${lastDestName}\n${dep} → ${ret} (${nights} ${I18n.t('nights')})\n${adults} adulto(s)\n\n${I18n.t('round_trip')}: ${I18n.formatPrice(flightPrice)}\n${hotelDesc}: ${I18n.formatPrice(hotelPrice)}\n${I18n.t('total_estimated')}: ${I18n.formatPrice(total)}\n\n${url}`;
+
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+  }
+
+  function shareTwitter(total) {
+    const url = generateShareableURL();
+    const text = `${lastDestName} ${I18n.formatPrice(total)} - Hoply`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   }
 
   function shareWhatsApp(total, flightPrice, hotelPrice, hotelDesc, nights) {
@@ -123,5 +171,5 @@ ${I18n.getLang() === 'en' ? 'Plan your trip at' : 'Arma tu viaje en'} Hoply 🗺
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
   }
 
-  return { search, updatePackage };
+  return { search, updatePackage, generateShareableURL, copyShareLink, shareEmail, shareTwitter };
 })();
