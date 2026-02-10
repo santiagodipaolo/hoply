@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hoply - Viajes por Argentina</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <span class="header-logo">🥕</span>
+      <h1>Ho<span>ply</span></h1>
+    </div>
+    <div class="header-actions">
+      <button id="btn-gift" class="header-btn btn-gift" data-i18n="gift_btn">🎁 Regalar</button>
+      <button id="btn-routes" class="header-btn" data-i18n="circuits">🗺️ Circuitos</button>
+      <button id="btn-compare" class="header-btn" data-i18n="compare">⚖️ Comparar</button>
+      <button id="btn-surprise" class="header-btn btn-surprise" data-i18n="surprise">🎲 Sorprendeme</button>
+      <button id="lang-toggle" class="header-btn btn-lang">🌐 EN</button>
+    </div>
+  </header>
+
+  <!-- Budget Filter Bar -->
+  <div class="budget-bar">
+    <div class="origin-select">
+      <label data-i18n="departure_label">📍 Salida:</label>
+      <select id="origin-city">
+        <option value="EZE">Buenos Aires</option>
+        <option value="COR">Cordoba</option>
+        <option value="MDZ">Mendoza</option>
+        <option value="SLA">Salta</option>
+        <option value="ROS">Rosario</option>
+      </select>
+    </div>
+    <span class="bar-divider"></span>
+    <label class="budget-label"><span data-i18n="budget_label">💰 Presupuesto:</span> <strong id="budget-value" data-i18n="no_limit">Sin limite</strong></label>
+    <input type="range" id="budget-slider" class="budget-slider" min="0" max="2000000" step="50000" value="2000000">
+    <button id="budget-reset" class="budget-reset" title="Reset">✕</button>
+  </div>
+
+  <!-- Main Layout -->
+  <main class="main-layout">
+    <!-- Map Container -->
+    <div id="map" class="map-container"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-placeholder">
+        <div class="sidebar-placeholder-icon">📍</div>
+        <h3 data-i18n="choose_dest">Elegi un destino</h3>
+        <p data-i18n="choose_dest_desc">Hace click en un marcador del mapa para ver vuelos, hoteles y armar tu paquete de viaje.</p>
+      </div>
+
+      <!-- Destination Content -->
+      <div id="sidebar-content" class="sidebar-content" style="display:none;">
+        <button id="sidebar-close" class="sidebar-close" title="Cerrar">&times;</button>
+
+        <!-- Destination Header -->
+        <div class="dest-header">
+          <img id="dest-image" class="dest-image" src="" alt="">
+          <div class="dest-overlay">
+            <h2 id="dest-name"></h2>
+            <div class="dest-badges">
+              <span id="dest-iata" class="dest-iata"></span>
+              <span id="dest-weather" class="dest-weather"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <p id="dest-description" class="dest-description"></p>
+
+        <!-- Quick Info -->
+        <div class="dest-info-grid">
+          <div class="info-card">
+            <span class="info-icon">🗓️</span>
+            <div>
+              <strong data-i18n="best_season">Mejor epoca</strong>
+              <span id="dest-season"></span>
+            </div>
+          </div>
+          <div class="info-card">
+            <span class="info-icon">⭐</span>
+            <div>
+              <strong data-i18n="activities">Actividades</strong>
+              <span id="dest-activities"></span>
+            </div>
+          </div>
+          <div class="info-card" id="weather-detail" style="display:none;">
+            <span class="info-icon" id="weather-icon-detail"></span>
+            <div>
+              <strong data-i18n="weather_now">Clima ahora</strong>
+              <span id="weather-text-detail"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Calendar -->
+        <div id="price-calendar" class="price-calendar" style="display:none;">
+          <h3 data-i18n="price_calendar">📊 Calendario de precios</h3>
+          <div id="calendar-grid" class="calendar-grid"></div>
+          <p class="calendar-legend"><span class="cal-cheap"></span> <span data-i18n="cheap">Barato</span> <span class="cal-expensive"></span> <span data-i18n="expensive">Caro</span></p>
+        </div>
+
+        <!-- Date Selector -->
+        <div class="date-selector" id="date-selector">
+          <h3 data-i18n="build_package">Arma tu paquete</h3>
+          <div class="date-inputs">
+            <div class="input-group">
+              <label for="departure-date" data-i18n="outbound">Ida</label>
+              <input type="date" id="departure-date">
+            </div>
+            <div class="input-group">
+              <label for="return-date" data-i18n="return_date">Vuelta</label>
+              <input type="date" id="return-date">
+            </div>
+            <div class="input-group">
+              <label for="adults-count" data-i18n="adults">Adultos</label>
+              <select id="adults-count">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+          </div>
+          <button id="search-package" class="btn-search">
+            <span class="btn-text" data-i18n="search_flights">Buscar vuelos y hoteles</span>
+            <span class="btn-loading" style="display:none;" data-i18n="searching">Buscando...</span>
+          </button>
+        </div>
+
+        <!-- Results -->
+        <div id="results-section" class="results-section" style="display:none;">
+          <div class="results-block">
+            <h3 id="flights-header">✈️ Vuelos desde Buenos Aires</h3>
+            <div id="flights-list" class="results-list"></div>
+          </div>
+          <div class="results-block">
+            <h3 data-i18n="hotels">🏨 Hoteles</h3>
+            <div id="hotels-list" class="results-list"></div>
+          </div>
+
+          <!-- Package Summary -->
+          <div id="package-summary" class="package-summary" style="display:none;">
+            <h3 data-i18n="your_package">📦 Tu Paquete</h3>
+            <div class="package-details">
+              <div class="package-line">
+                <span data-i18n="round_trip">Vuelo ida/vuelta</span>
+                <span id="pkg-flight-price"></span>
+              </div>
+              <div class="package-line">
+                <span id="pkg-hotel-desc"></span>
+                <span id="pkg-hotel-price"></span>
+              </div>
+              <div class="package-total">
+                <span data-i18n="total_estimated">Total estimado</span>
+                <span id="pkg-total-price"></span>
+              </div>
+            </div>
+            <button id="share-whatsapp" class="btn-whatsapp" data-i18n="share_whatsapp">📱 Compartir por WhatsApp</button>
+          </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="reviews-section">
+          <h3 data-i18n="reviews_title">💬 Opiniones de viajeros</h3>
+          <div id="reviews-list" class="reviews-list"></div>
+          <div class="review-form">
+            <input type="text" id="review-name" data-i18n-placeholder="your_name" placeholder="Tu nombre" maxlength="30">
+            <div class="review-stars" id="review-stars">
+              <span data-rating="1">☆</span><span data-rating="2">☆</span><span data-rating="3">☆</span><span data-rating="4">☆</span><span data-rating="5">☆</span>
+            </div>
+            <textarea id="review-comment" data-i18n-placeholder="your_experience" placeholder="Conta tu experiencia..." maxlength="200" rows="2"></textarea>
+            <button id="submit-review" class="btn-review" data-i18n="submit_review">Enviar opinion</button>
+          </div>
+        </div>
+
+        <!-- Error message -->
+        <div id="error-message" class="error-message" style="display:none;">
+          <p>⚠️ <span id="error-text"></span></p>
+          <p class="error-hint" data-i18n="error_api">Verifica que las API keys de Amadeus esten configuradas en .env</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Compare Modal -->
+  <div id="compare-modal" class="modal" style="display:none;">
+    <div class="modal-content modal-wide">
+      <button class="modal-close" id="compare-close">&times;</button>
+      <h2 data-i18n="compare_title">⚖️ Comparar destinos</h2>
+      <p class="modal-subtitle" data-i18n="compare_subtitle">Selecciona 2 o 3 destinos para comparar</p>
+      <div id="compare-select" class="compare-select"></div>
+      <div id="compare-table" class="compare-table"></div>
+    </div>
+  </div>
+
+  <!-- Routes Modal -->
+  <div id="routes-modal" class="modal" style="display:none;">
+    <div class="modal-content modal-wide">
+      <button class="modal-close" id="routes-close">&times;</button>
+      <h2 data-i18n="routes_title">🗺️ Circuitos sugeridos</h2>
+      <p class="modal-subtitle" data-i18n="routes_subtitle">Rutas multi-destino para explorar Argentina</p>
+      <div id="routes-list" class="routes-list"></div>
+    </div>
+  </div>
+
+  <!-- Gift Modal -->
+  <div id="gift-modal" class="modal" style="display:none;">
+    <div class="modal-content modal-gift">
+      <button class="modal-close" id="gift-close">&times;</button>
+      <h2 data-i18n="gift_title">🎁 Regala un viaje</h2>
+      <p class="modal-subtitle" data-i18n="gift_subtitle">Sorprende a alguien especial con un viaje por Argentina</p>
+
+      <div class="gift-form">
+        <div class="gift-row">
+          <div class="gift-field">
+            <label data-i18n="gift_to">Para:</label>
+            <input type="text" id="gift-to" data-i18n-placeholder="gift_to_placeholder" placeholder="Nombre del destinatario" maxlength="40">
+          </div>
+          <div class="gift-field">
+            <label data-i18n="gift_from">De:</label>
+            <input type="text" id="gift-from" data-i18n-placeholder="gift_from_placeholder" placeholder="Tu nombre" maxlength="40">
+          </div>
+        </div>
+        <div class="gift-field">
+          <label data-i18n="gift_destination">Destino:</label>
+          <select id="gift-dest-select"></select>
+        </div>
+        <div class="gift-field">
+          <label data-i18n="gift_message">Mensaje personal:</label>
+          <textarea id="gift-message" data-i18n-placeholder="gift_message_placeholder" placeholder="Escribi un mensaje especial..." maxlength="200" rows="3"></textarea>
+        </div>
+        <button id="gift-generate" class="btn-gift-generate" data-i18n="gift_generate">Generar tarjeta de regalo</button>
+      </div>
+
+      <div id="gift-card-result" class="gift-card-result" style="display:none;">
+        <div id="gift-card-visual" class="gift-card-visual"></div>
+        <div class="gift-actions">
+          <button id="gift-whatsapp" class="btn-gift-action btn-gift-wa" data-i18n="gift_share_whatsapp">📱 Enviar por WhatsApp</button>
+          <button id="gift-copy" class="btn-gift-action btn-gift-copy" data-i18n="gift_copy">📋 Copiar texto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile bottom bar -->
+  <div id="mobile-bar" class="mobile-bar" style="display:none;">
+    <button id="mobile-bar-btn" class="mobile-bar-btn">
+      <span id="mobile-bar-name"></span>
+      <span class="mobile-bar-arrow">↑</span>
+    </button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/map.js"></script>
+  <script src="/js/destinations.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/packages.js"></script>
+  <script src="/js/weather.js"></script>
+  <script src="/js/compare.js"></script>
+  <script src="/js/routes.js"></script>
+  <script src="/js/reviews.js"></script>
+  <script src="/js/gift.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
